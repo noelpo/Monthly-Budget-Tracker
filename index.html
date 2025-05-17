@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Monthly Budget Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background-color: #3a3d98;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    h2 {
+      border-bottom: 2px solid #3a3d98;
+      padding-bottom: 0.5rem;
+    }
+    input, button {
+      padding: 0.6rem;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #3a3d98;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background-color: #2b2f70;
+    }
+    .flex {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .expenses {
+      margin-top: 1rem;
+    }
+    .expenses ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .expenses li {
+      padding: 0.5rem;
+      border-bottom: 1px solid #eee;
+    }
+    .status {
+      font-size: 1.2rem;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    .over {
+      color: red;
+    }
+    .within {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Monthly Budget Tracker</h1>
+  </header>
+  <div class="container">
+    <section>
+      <h2>1. Set Your Monthly Budget</h2>
+      <input type="number" id="budgetInput" placeholder="Enter monthly budget" />
+      <button onclick="setBudget()">Set Budget</button>
+      <p id="budgetDisplay"></p>
+    </section>
+
+    <section>
+      <h2>2. Add Expenses Manually</h2>
+      <div class="flex">
+        <input type="text" id="expenseName" placeholder="Description" />
+        <input type="number" id="expenseAmount" placeholder="Amount" />
+        <button onclick="addExpense()">Add</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Or Upload a Receipt (Image)</h2>
+      <input type="file" accept="image/*" onchange="processReceipt(event)" />
+      <p id="receiptStatus"></p>
+    </section>
+
+    <section class="expenses">
+      <h2>Expenses</h2>
+      <ul id="expenseList"></ul>
+    </section>
+
+    <section class="status" id="statusOutput"></section>
+  </div>
+
+  <script>
+    let budget = 0;
+    let expenses = [];
+
+    function setBudget() {
+      const value = parseFloat(document.getElementById('budgetInput').value);
+      if (isNaN(value) || value <= 0) {
+        alert("Please enter a valid budget amount.");
+        return;
+      }
+      budget = value;
+      document.getElementById('budgetDisplay').textContent = `Budget set to $${budget.toFixed(2)}`;
+      updateStatus();
+    }
+
+    function addExpense(name = null, amount = null) {
+      const desc = name || document.getElementById('expenseName').value;
+      const val = parseFloat(amount || document.getElementById('expenseAmount').value);
+      if (!desc || isNaN(val) || val <= 0) {
+        alert("Enter valid description and amount.");
+        return;
+      }
+      expenses.push({ desc, val });
+      renderExpenses();
+      updateStatus();
+      document.getElementById('expenseName').value = '';
+      document.getElementById('expenseAmount').value = '';
+    }
+
+    function renderExpenses() {
+      const list = document.getElementById('expenseList');
+      list.innerHTML = '';
+      expenses.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.textContent = `${item.desc}: $${item.val.toFixed(2)}`;
+        list.appendChild(li);
+      });
+    }
+
+    function updateStatus() {
+      const total = expenses.reduce((sum, e) => sum + e.val, 0);
+      const output = document.getElementById('statusOutput');
+      if (!budget) {
+        output.textContent = "Set your budget to begin tracking.";
+        output.className = "status";
+        return;
+      }
+      output.textContent = `Total spent: $${total.toFixed(2)} – ` +
+        (total > budget ? "Over budget!" : "Within budget.");
+      output.className = `status ${total > budget ? 'over' : 'within'}`;
+    }
+
+    function processReceipt(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      document.getElementById('receiptStatus').textContent = "Processing image with OCR...";
+
+      Tesseract.recognize(file, 'eng').then(({ data: { text } }) => {
+        document.getElementById('receiptStatus').textContent = "OCR complete. Scanning for amounts...";
+        const matches = text.match(/(\d+\.\d{2})/g); // match dollar/cents
+        if (matches) {
+          matches.forEach(amount => addExpense("Receipt item", parseFloat(amount)));
+          document.getElementById('receiptStatus').textContent = `Found ${matches.length} expense(s) from receipt.`;
+        } else {
+          document.getElementById('receiptStatus').textContent = "No valid expenses found.";
+        }
+      }).catch(err => {
+        console.error(err);
+        document.getElementById('receiptStatus').textContent = "Error processing receipt.";
+      });
+    }
+  </script>
+</body>
+</html>
+
