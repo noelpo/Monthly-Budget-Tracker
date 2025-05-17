@@ -85,7 +85,8 @@
   <div class="container">
     <section>
       <h2>1. Set Your Monthly Budget</h2>
-      <input type="number" id="budgetInput" placeholder="Enter monthly budget" />
+      <!-- Only accept positive integers -->
+      <input type="number" id="budgetInput" placeholder="Enter monthly budget" step="1" min="1" />
       <button onclick="setBudget()">Set Budget</button>
       <p id="budgetDisplay"></p>
     </section>
@@ -94,7 +95,8 @@
       <h2>2. Add Expenses Manually</h2>
       <div class="flex">
         <input type="text" id="expenseName" placeholder="Description" />
-        <input type="number" id="expenseAmount" placeholder="Amount" />
+        <!-- Only accept positive integers -->
+        <input type="number" id="expenseAmount" placeholder="Amount" step="1" min="1" />
         <button onclick="addExpense()">Add</button>
       </div>
     </section>
@@ -118,21 +120,23 @@
     let expenses = [];
 
     function setBudget() {
-      const value = parseFloat(document.getElementById('budgetInput').value);
+      // Only allow positive integers for budget
+      const value = parseInt(document.getElementById('budgetInput').value, 10);
       if (isNaN(value) || value <= 0) {
-        alert("Please enter a valid budget amount.");
+        alert("Please enter a valid budget amount (positive integer).");
         return;
       }
       budget = value;
-      document.getElementById('budgetDisplay').textContent = `Budget set to $${budget.toFixed(2)}`;
+      document.getElementById('budgetDisplay').textContent = `Budget set to $${budget}`;
       updateStatus();
     }
 
     function addExpense(name = null, amount = null) {
       const desc = name || document.getElementById('expenseName').value;
-      const val = parseFloat(amount || document.getElementById('expenseAmount').value);
+      // Only allow positive integers for expense
+      const val = parseInt(amount || document.getElementById('expenseAmount').value, 10);
       if (!desc || isNaN(val) || val <= 0) {
-        alert("Enter valid description and amount.");
+        alert("Enter valid description and a positive integer amount.");
         return;
       }
       expenses.push({ desc, val });
@@ -147,7 +151,7 @@
       list.innerHTML = '';
       expenses.forEach((item, idx) => {
         const li = document.createElement('li');
-        li.textContent = `${item.desc}: $${item.val.toFixed(2)}`;
+        li.textContent = `${item.desc}: $${item.val}`;
         list.appendChild(li);
       });
     }
@@ -160,7 +164,7 @@
         output.className = "status";
         return;
       }
-      output.textContent = `Total spent: $${total.toFixed(2)} – ` +
+      output.textContent = `Total spent: $${total} – ` +
         (total > budget ? "Over budget!" : "Within budget.");
       output.className = `status ${total > budget ? 'over' : 'within'}`;
     }
@@ -173,9 +177,10 @@
 
       Tesseract.recognize(file, 'eng').then(({ data: { text } }) => {
         document.getElementById('receiptStatus').textContent = "OCR complete. Scanning for amounts...";
-        const matches = text.match(/(\d+\.\d{2})/g); // match dollar/cents
+        // Match only integers in the OCR text
+        const matches = text.match(/\b\d+\b/g);
         if (matches) {
-          matches.forEach(amount => addExpense("Receipt item", parseFloat(amount)));
+          matches.forEach(amount => addExpense("Receipt item", parseInt(amount, 10)));
           document.getElementById('receiptStatus').textContent = `Found ${matches.length} expense(s) from receipt.`;
         } else {
           document.getElementById('receiptStatus').textContent = "No valid expenses found.";
@@ -188,4 +193,3 @@
   </script>
 </body>
 </html>
-
